@@ -1,0 +1,28 @@
+# Binarios compilados de Go
+/server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.prof
+
+# Herramientas de desarrollo / IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Archivos específicos de macOS (¡Clásico en tu Mac Mini!)
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Docker y persistencia local (Para no subir tu DB local sin querer)
+.env
+docker-compose.override.yml
