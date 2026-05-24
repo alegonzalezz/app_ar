@@ -80,6 +80,22 @@ func (r *postgresUserRepository) ExistsByEmail(ctx context.Context, email string
 	return exists, nil
 }
 
+func (r *postgresUserRepository) GetByID(ctx context.Context, id string) (*User, error) {
+	query := "SELECT id, email, name, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL"
+	db := r.getDB(ctx)
+	var u User
+	err := db.QueryRowContext(ctx, query, id).Scan(
+		&u.ID, &u.Email, &u.Name, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (r *postgresUserRepository) Save(ctx context.Context, user *User) error {
 	query := `
 		INSERT INTO users (id, email, name, created_at, updated_at, deleted_at)
@@ -256,6 +272,29 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Success(w, http.StatusCreated, user)
+}
+
+type userBridge struct {
+	repo UserRepository
+}
+
+func NewUserBridge(repo UserRepository) auth.UserProvider {
+	return &userBridge{repo: repo}
+}
+
+func (b *userBridge) GetUser(ctx context.Context, userID string) (*auth.UserInfo, error) {
+	user, err := b.repo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, nil
+	}
+	return &auth.UserInfo{
+		ID:    user.ID,
+		Email: user.Email,
+		Name:  user.Name,
+	}, nil
 }
 
 // generateUUID genera un UUID v4 usando la biblioteca estándar crypto/rand

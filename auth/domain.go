@@ -21,6 +21,16 @@ type AuthUser struct {
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
 }
 
+type UserInfo struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type UserProvider interface {
+	GetUser(ctx context.Context, userID string) (*UserInfo, error)
+}
+
 type Repository interface {
 	Save(ctx context.Context, authUser *AuthUser) error
 	GetByEmail(ctx context.Context, email string) (*AuthUser, error)

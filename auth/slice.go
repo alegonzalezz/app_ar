@@ -241,3 +241,98 @@ func (h *ChangePasswordHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	response.Success(w, http.StatusOK, "contraseña actualizada exitosamente")
 }
+
+type LoginInput struct {
+	Email    string
+	Password string
+}
+
+type LoginUseCase struct {
+	repo         Repository
+	userProvider UserProvider
+}
+
+func NewLoginUseCase(repo Repository, userProvider UserProvider) *LoginUseCase {
+	return &LoginUseCase{repo: repo, userProvider: userProvider}
+}
+
+func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*UserInfo, error) {
+	authUser, err := uc.repo.GetByEmail(ctx, input.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	passwordHash := hashPassword(input.Password, authUser.Salt)
+	if passwordHash != authUser.PasswordHash {
+		return nil, ErrInvalidCredentials
+	}
+
+	userInfo, err := uc.userProvider.GetUser(ctx, authUser.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return userInfo, nil
+}
+
+type LoginHandler struct {
+	useCase *LoginUseCase
+}
+
+func NewLoginHandler(uc *LoginUseCase) *LoginHandler {
+	return &LoginHandler{useCase: uc}
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.Error(w, http.StatusMethodNotAllowed, response.ErrorDetail{Code: "method_not_allowed"})
+		return
+	}
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, response.ErrorDetail{Code: "invalid_json"})
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
+
+	var errs []response.ErrorDetail
+	if req.Email == "" {
+		errs = append(errs, response.ErrorDetail{Field: "email", Code: "required_field"})
+	}
+	if req.Password == "" {
+		errs = append(errs, response.ErrorDetail{Field: "password", Code: "required_field"})
+	}
+
+	if len(errs) > 0 {
+		response.Error(w, http.StatusBadRequest, errs...)
+		return
+	}
+
+	userInfo, err := h.useCase.Execute(r.Context(), LoginInput{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+
+	if err != nil {
+		if err == ErrUserNotFound {
+			response.Error(w, http.StatusNotFound, response.ErrorDetail{Field: "email", Code: "user_not_found"})
+			return
+		}
+		if err == ErrInvalidCredentials {
+			response.Error(w, http.StatusUnauthorized, response.ErrorDetail{Code: "invalid_credentials"})
+			return
+		}
+		response.Error(w, http.StatusInternalServerError, response.ErrorDetail{Code: "internal_error"})
+		return
+	}
+
+	response.Success(w, http.StatusOK, userInfo)
+}

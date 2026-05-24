@@ -21,6 +21,7 @@ type User struct {
 
 type UserRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
+	GetByID(ctx context.Context, id string) (*User, error)
 	Save(ctx context.Context, user *User) error
 }
 

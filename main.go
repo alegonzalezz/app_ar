@@ -18,7 +18,7 @@ import (
 
 func main() {
 	dbConnStr := getEnv("DATABASE_URL", "postgres://user_dev:password_dev@localhost:5432/dev_db?sslmode=disable")
-	
+
 	db, err := sql.Open("postgres", dbConnStr)
 	if err != nil {
 		log.Fatalf("Error abriendo conexión a la DB: %v", err)
@@ -55,6 +55,12 @@ func main() {
 	createUserUseCase := users.NewCreateUserUseCase(txManager, usersRepo, authCreatorBridge)
 	usersHandler := users.NewHandler(createUserUseCase)
 	http.Handle("/users", usersHandler)
+
+	// Inicializar Login (Auth con bridge hacia Users)
+	userProviderBridge := users.NewUserBridge(usersRepo)
+	loginUseCase := auth.NewLoginUseCase(authRepo, userProviderBridge)
+	loginHandler := auth.NewLoginHandler(loginUseCase)
+	http.Handle("/auth/login", loginHandler)
 
 	port := getEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)
