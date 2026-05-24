@@ -2,7 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"time"
+)
+
+var (
+	ErrUserNotFound       = errors.New("usuario no encontrado")
+	ErrInvalidCredentials = errors.New("credenciales inválidas")
 )
 
 type AuthUser struct {
@@ -17,4 +23,6 @@ type AuthUser struct {
 
 type Repository interface {
 	Save(ctx context.Context, authUser *AuthUser) error
+	GetByEmail(ctx context.Context, email string) (*AuthUser, error)
+	UpdatePassword(ctx context.Context, userID, newPasswordHash string) error
 }

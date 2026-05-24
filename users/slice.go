@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gcp-serverless-app/auth"
+	"gcp-serverless-app/pkg/response"
 )
 
 // SQLQueryer define la interfaz común para sql.DB y sql.Tx
@@ -205,18 +206,14 @@ type CreateUserRequest struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Método no permitido. Use POST."})
+		response.Error(w, http.StatusMethodNotAllowed, response.ErrorDetail{Code: "method_not_allowed"})
 		return
 	}
 
 	var req CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "JSON malformado"})
+		response.Error(w, http.StatusBadRequest, response.ErrorDetail{Code: "invalid_json"})
 		return
 	}
 
@@ -225,9 +222,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
 
-	if req.Name == "" || req.Email == "" || req.Password == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Los campos 'name', 'email' y 'password' son requeridos"})
+	var errs []response.ErrorDetail
+	if req.Name == "" {
+		errs = append(errs, response.ErrorDetail{Field: "name", Code: "required_field"})
+	}
+	if req.Email == "" {
+		errs = append(errs, response.ErrorDetail{Field: "email", Code: "required_field"})
+	}
+	if req.Password == "" {
+		errs = append(errs, response.ErrorDetail{Field: "password", Code: "required_field"})
+	} else if len(req.Password) < 6 {
+		errs = append(errs, response.ErrorDetail{Field: "password", Code: "min_length"})
+	}
+
+	if len(errs) > 0 {
+		response.Error(w, http.StatusBadRequest, errs...)
 		return
 	}
 
@@ -239,17 +248,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == ErrEmailAlreadyExists {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			response.Error(w, http.StatusConflict, response.ErrorDetail{Field: "email", Code: "duplicated_user"})
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Error interno del servidor", "details": err.Error()})
+		response.Error(w, http.StatusInternalServerError, response.ErrorDetail{Code: "internal_error"})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	response.Success(w, http.StatusCreated, user)
 }
 
 // generateUUID genera un UUID v4 usando la biblioteca estándar crypto/rand

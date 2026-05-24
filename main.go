@@ -44,6 +44,9 @@ func main() {
 	// Inicializar slice Auth
 	authRepo := auth.NewRepository(db)
 	createAuthUseCase := auth.NewCreateAuthUseCase(authRepo)
+	changePasswordUseCase := auth.NewChangePasswordUseCase(authRepo)
+	changePasswordHandler := auth.NewChangePasswordHandler(changePasswordUseCase)
+	http.Handle("/auth/change-password", changePasswordHandler)
 
 	// Inicializar slice Users (con dependencia a Auth vía adapter/bridge)
 	usersRepo := users.NewRepository(db)

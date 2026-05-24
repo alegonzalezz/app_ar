@@ -1,10 +1,11 @@
 package hello
 
 import (
-	"database/sql"
 	"context"
-	"encoding/json"
+	"database/sql"
 	"net/http"
+
+	"gcp-serverless-app/pkg/response"
 )
 
 type postgresRepository struct {
@@ -49,14 +50,11 @@ func NewHandler(uc *FindGreetingUseCase) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	id := r.URL.Query().Get("id")
 	result, err := h.useCase.Execute(r.Context(), id)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Registro no encontrado"})
+		response.Error(w, http.StatusNotFound, response.ErrorDetail{Code: "not_found"})
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+	response.Success(w, http.StatusOK, result)
 }
