@@ -1,4 +1,4 @@
-package users
+package domain
 
 import (
 	"context"
@@ -10,25 +10,20 @@ var (
 	ErrEmailAlreadyExists = errors.New("el correo electrónico ya se encuentra registrado")
 )
 
-type User struct {
-	ID        string     `json:"id"`
-	Email     string     `json:"email"`
-	Name      string     `json:"name"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-}
-
+// UserRepository define el puerto driven para acceso a datos de usuario.
 type UserRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetByID(ctx context.Context, id string) (*User, error)
 	Save(ctx context.Context, user *User) error
 }
 
+// TxManager define el puerto driven para gestión de transacciones.
 type TxManager interface {
 	RunInTx(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
+// AuthCreator define el puerto driven para creación de credenciales.
+// Implementado por un bridge inter-módulo.
 type AuthCreator interface {
 	CreateAuth(ctx context.Context, userID, email, password string, createdAt time.Time) error
 }
