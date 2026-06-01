@@ -61,7 +61,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err == authDomain.ErrUserNotFound {
-			response.Error(w, http.StatusNotFound, response.ErrorDetail{Field: "email", Code: "user_not_found"})
+			response.Error(w, http.StatusUnauthorized, response.ErrorDetail{Code: "invalid_credentials"})
 			return
 		}
 		if err == authDomain.ErrInvalidCredentials {

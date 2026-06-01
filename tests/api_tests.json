@@ -1,0 +1,506 @@
+{
+  "base_url": "http://localhost:8080",
+  "tests": [
+    {
+      "name": "GET /hello - success (default id=1)",
+      "request": {
+        "method": "GET",
+        "path": "/hello"
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_contains": {
+          "ID": "1",
+          "Message": "¡Hola Mundo desde PostgreSQL en GCP!"
+        }
+      }
+    },
+    {
+      "name": "GET /hello - with custom id",
+      "request": {
+        "method": "GET",
+        "path": "/hello?id=1"
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_contains": {
+          "ID": "1"
+        }
+      }
+    },
+    {
+      "name": "GET /hello - not found",
+      "request": {
+        "method": "GET",
+        "path": "/hello?id=999"
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"code": "not_found"}]
+      }
+    },
+    {
+      "name": "POST /users - success",
+      "request": {
+        "method": "POST",
+        "path": "/users",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "Juan Pérez",
+          "email": "juan@test.com",
+          "password": "123456"
+        }
+      },
+      "expected": {
+        "status": 201,
+        "errors": [],
+        "data_contains": {
+          "Name": "Juan Pérez",
+          "Email": "juan@test.com"
+        }
+      }
+    },
+    {
+      "name": "POST /users - duplicated email",
+      "request": {
+        "method": "POST",
+        "path": "/users",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "Juan Pérez",
+          "email": "juan@test.com",
+          "password": "123456"
+        }
+      },
+      "expected": {
+        "status": 409,
+        "errors": [{"field": "email", "code": "duplicated_user"}]
+      }
+    },
+    {
+      "name": "POST /users - missing fields",
+      "request": {
+        "method": "POST",
+        "path": "/users",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "",
+          "email": "",
+          "password": ""
+        }
+      },
+      "expected": {
+        "status": 400,
+        "errors_contain": [
+          {"field": "name", "code": "required_field"},
+          {"field": "email", "code": "required_field"},
+          {"field": "password", "code": "required_field"}
+        ]
+      }
+    },
+    {
+      "name": "POST /users - password too short",
+      "request": {
+        "method": "POST",
+        "path": "/users",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "Test",
+          "email": "test@test.com",
+          "password": "abc"
+        }
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"field": "password", "code": "min_length"}]
+      }
+    },
+    {
+      "name": "POST /users - invalid JSON",
+      "request": {
+        "method": "POST",
+        "path": "/users",
+        "headers": {"Content-Type": "application/json"},
+        "body": "invalid json"
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"code": "invalid_json"}]
+      }
+    },
+    {
+      "name": "POST /users - wrong method (GET)",
+      "request": {
+        "method": "GET",
+        "path": "/users"
+      },
+      "expected": {
+        "status": 405,
+        "errors": [{"code": "method_not_allowed"}]
+      }
+    },
+    {
+      "name": "POST /auth/login - success",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "password": "123456"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_contains": {
+          "Email": "juan@test.com",
+          "Name": "Juan Pérez"
+        }
+      }
+    },
+    {
+      "name": "POST /auth/login - user not found",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "noexiste@test.com",
+          "password": "123456"
+        }
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"field": "email", "code": "user_not_found"}]
+      }
+    },
+    {
+      "name": "POST /auth/login - invalid credentials",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "password": "wrongpassword"
+        }
+      },
+      "expected": {
+        "status": 401,
+        "errors": [{"code": "invalid_credentials"}]
+      }
+    },
+    {
+      "name": "POST /auth/login - missing fields",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "",
+          "password": ""
+        }
+      },
+      "expected": {
+        "status": 400,
+        "errors_contain": [
+          {"field": "email", "code": "required_field"},
+          {"field": "password", "code": "required_field"}
+        ]
+      }
+    },
+    {
+      "name": "POST /auth/login - invalid JSON",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": "{bad json"
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"code": "invalid_json"}]
+      }
+    },
+    {
+      "name": "POST /auth/login - wrong method (DELETE)",
+      "request": {
+        "method": "DELETE",
+        "path": "/auth/login"
+      },
+      "expected": {
+        "status": 405,
+        "errors": [{"code": "method_not_allowed"}]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - success",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "old_password": "123456",
+          "new_password": "nueva123"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_is_string": "contraseña actualizada exitosamente"
+      }
+    },
+    {
+      "name": "POST /auth/login - verify new password works",
+      "request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "password": "nueva123"
+        }
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_contains": {
+          "Email": "juan@test.com"
+        }
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - user not found",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "noexiste@test.com",
+          "old_password": "x",
+          "new_password": "y"
+        }
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"field": "email", "code": "user_not_found"}]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - invalid old password",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "old_password": "wrong",
+          "new_password": "nueva456"
+        }
+      },
+      "expected": {
+        "status": 401,
+        "errors": [{"field": "old_password", "code": "invalid_user"}]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - new password too short",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "email": "juan@test.com",
+          "old_password": "nueva123",
+          "new_password": "ab"
+        }
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"field": "new_password", "code": "min_length"}]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - missing fields",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": {}
+      },
+      "expected": {
+        "status": 400,
+        "errors_contain": [
+          {"field": "email", "code": "required_field"},
+          {"field": "old_password", "code": "required_field"},
+          {"field": "new_password", "code": "required_field"}
+        ]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - invalid JSON",
+      "request": {
+        "method": "PUT",
+        "path": "/auth/change-password",
+        "headers": {"Content-Type": "application/json"},
+        "body": "{bad json"
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"code": "invalid_json"}]
+      }
+    },
+    {
+      "name": "PUT /auth/change-password - wrong method (POST)",
+      "request": {
+        "method": "POST",
+        "path": "/auth/change-password"
+      },
+      "expected": {
+        "status": 405,
+        "errors": [{"code": "method_not_allowed"}]
+      }
+    },
+    {
+      "name": "POST /customers - success",
+      "request": {
+        "method": "POST",
+        "path": "/customers",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "Empresa XYZ",
+          "phone_number": "+56912345678",
+          "extra_phone_number": "+56987654321",
+          "contact_email": "contacto@xyz.cl",
+          "manager_name": "María García",
+          "address": "Av. Providencia 1234, Santiago"
+        }
+      },
+      "expected": {
+        "status": 201,
+        "errors": [],
+        "data_contains": {
+          "Name": "Empresa XYZ",
+          "PhoneNumber": "+56912345678",
+          "ContactEmail": "contacto@xyz.cl",
+          "ManagerName": "María García",
+          "Address": "Av. Providencia 1234, Santiago"
+        }
+      }
+    },
+    {
+      "name": "POST /customers - missing fields",
+      "request": {
+        "method": "POST",
+        "path": "/customers",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "",
+          "phone_number": "",
+          "contact_email": "",
+          "manager_name": "",
+          "address": ""
+        }
+      },
+      "expected": {
+        "status": 400,
+        "errors_contain": [
+          {"field": "name", "code": "required_field"},
+          {"field": "phone_number", "code": "required_field"},
+          {"field": "contact_email", "code": "required_field"},
+          {"field": "manager_name", "code": "required_field"},
+          {"field": "address", "code": "required_field"}
+        ]
+      }
+    },
+    {
+      "name": "POST /customers - invalid JSON",
+      "request": {
+        "method": "POST",
+        "path": "/customers",
+        "headers": {"Content-Type": "application/json"},
+        "body": "{not json"
+      },
+      "expected": {
+        "status": 400,
+        "errors": [{"code": "invalid_json"}]
+      }
+    },
+    {
+      "name": "GET /customers - list (at least one created)",
+      "request": {
+        "method": "GET",
+        "path": "/customers"
+      },
+      "expected": {
+        "status": 200,
+        "errors": [],
+        "data_is_array": true
+      }
+    },
+    {
+      "name": "GET /customers/{id} - not found",
+      "request": {
+        "method": "GET",
+        "path": "/customers/00000000-0000-0000-0000-000000000000"
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"code": "customer_not_found"}]
+      }
+    },
+    {
+      "name": "PUT /customers/{id} - not found",
+      "request": {
+        "method": "PUT",
+        "path": "/customers/00000000-0000-0000-0000-000000000000",
+        "headers": {"Content-Type": "application/json"},
+        "body": {
+          "name": "Nadie",
+          "phone_number": "000",
+          "contact_email": "nadie@test.com",
+          "manager_name": "Nadie",
+          "address": "N/A"
+        }
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"code": "customer_not_found"}]
+      }
+    },
+    {
+      "name": "PUT /customers/{id} - missing fields",
+      "request": {
+        "method": "PUT",
+        "path": "/customers/00000000-0000-0000-0000-000000000000",
+        "headers": {"Content-Type": "application/json"},
+        "body": {}
+      },
+      "expected": {
+        "status": 400,
+        "errors_contain": [
+          {"field": "name", "code": "required_field"},
+          {"field": "phone_number", "code": "required_field"},
+          {"field": "contact_email", "code": "required_field"},
+          {"field": "manager_name", "code": "required_field"},
+          {"field": "address", "code": "required_field"}
+        ]
+      }
+    },
+    {
+      "name": "DELETE /customers/{id} - not found",
+      "request": {
+        "method": "DELETE",
+        "path": "/customers/00000000-0000-0000-0000-000000000000"
+      },
+      "expected": {
+        "status": 404,
+        "errors": [{"code": "customer_not_found"}]
+      }
+    }
+  ]
+}

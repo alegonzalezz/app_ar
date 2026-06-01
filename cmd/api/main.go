@@ -14,12 +14,14 @@ import (
 
 	// Infrastructure
 	authInfra "gcp-serverless-app/internal/auth/infrastructure"
+	customerInfra "gcp-serverless-app/internal/customer/infrastructure"
 	greetInfra "gcp-serverless-app/internal/greeting/infrastructure"
 	pg "gcp-serverless-app/internal/shared/platform/postgres"
 	userInfra "gcp-serverless-app/internal/user/infrastructure"
 
 	// Application
 	authApp "gcp-serverless-app/internal/auth/application"
+	customerApp "gcp-serverless-app/internal/customer/application"
 	greetApp "gcp-serverless-app/internal/greeting/application"
 	userApp "gcp-serverless-app/internal/user/application"
 
@@ -56,6 +58,7 @@ func main() {
 	authRepo := authInfra.NewPostgresRepository(db)
 	userRepo := userInfra.NewPostgresRepository(db)
 	greetRepo := greetInfra.NewPostgresRepository(db)
+	customerRepo := customerInfra.NewPostgresRepository(db)
 
 	// === CASOS DE USO ===
 	createAuthUC := authApp.NewCreateAuthUseCase(authRepo, hasher)
@@ -69,11 +72,20 @@ func main() {
 	loginUC := authApp.NewLoginUseCase(authRepo, userProvider, hasher)
 	findGreetingUC := greetApp.NewFindGreetingUseCase(greetRepo)
 
+	createCustomerUC := customerApp.NewCreateCustomerUseCase(customerRepo)
+	getCustomerUC := customerApp.NewGetCustomerUseCase(customerRepo)
+	listCustomersUC := customerApp.NewListCustomersUseCase(customerRepo)
+	updateCustomerUC := customerApp.NewUpdateCustomerUseCase(customerRepo)
+	deleteCustomerUC := customerApp.NewDeleteCustomerUseCase(customerRepo)
+
 	// === HTTP HANDLERS ===
-	http.Handle("/users", handlers.NewUserHandler(createUserUC))
-	http.Handle("/auth/login", handlers.NewLoginHandler(loginUC))
-	http.Handle("/auth/change-password", handlers.NewChangePasswordHandler(changePassUC))
-	http.Handle("/hello", handlers.NewGreetingHandler(findGreetingUC))
+	http.Handle("POST /users", handlers.NewUserHandler(createUserUC))
+	http.Handle("POST /auth/login", handlers.NewLoginHandler(loginUC))
+	http.Handle("POST /auth/change-password", handlers.NewChangePasswordHandler(changePassUC))
+	http.Handle("GET /hello", handlers.NewGreetingHandler(findGreetingUC))
+
+	customerHandler := handlers.NewCustomerHandler(createCustomerUC, getCustomerUC, listCustomersUC, updateCustomerUC, deleteCustomerUC)
+	customerHandler.RegisterRoutes(http.DefaultServeMux)
 
 	port := config.GetEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)
