@@ -17,6 +17,7 @@ import (
 	customerInfra "gcp-serverless-app/internal/customer/infrastructure"
 	greetInfra "gcp-serverless-app/internal/greeting/infrastructure"
 	pg "gcp-serverless-app/internal/shared/platform/postgres"
+	taskInfra "gcp-serverless-app/internal/task/infrastructure"
 	userInfra "gcp-serverless-app/internal/user/infrastructure"
 	workerInfra "gcp-serverless-app/internal/worker/infrastructure"
 
@@ -24,6 +25,7 @@ import (
 	authApp "gcp-serverless-app/internal/auth/application"
 	customerApp "gcp-serverless-app/internal/customer/application"
 	greetApp "gcp-serverless-app/internal/greeting/application"
+	taskApp "gcp-serverless-app/internal/task/application"
 	userApp "gcp-serverless-app/internal/user/application"
 	workerApp "gcp-serverless-app/internal/worker/application"
 
@@ -62,6 +64,7 @@ func main() {
 	greetRepo := greetInfra.NewPostgresRepository(db)
 	customerRepo := customerInfra.NewPostgresRepository(db)
 	workerRepo := workerInfra.NewPostgresRepository(db)
+	taskRepo := taskInfra.NewPostgresRepository(db)
 
 	// === CASOS DE USO ===
 	createAuthUC := authApp.NewCreateAuthUseCase(authRepo, hasher)
@@ -87,6 +90,13 @@ func main() {
 	updateWorkerUC := workerApp.NewUpdateWorkerUseCase(workerRepo)
 	deleteWorkerUC := workerApp.NewDeleteWorkerUseCase(workerRepo)
 
+	createTaskUC := taskApp.NewCreateTaskUseCase(taskRepo)
+	getTaskUC := taskApp.NewGetTaskUseCase(taskRepo)
+	listTasksUC := taskApp.NewListTasksUseCase(taskRepo)
+	updateTaskUC := taskApp.NewUpdateTaskUseCase(taskRepo)
+	deleteTaskUC := taskApp.NewDeleteTaskUseCase(taskRepo)
+	updateTaskStatusUC := taskApp.NewUpdateTaskStatusUseCase(taskRepo)
+
 	// === HTTP HANDLERS ===
 	http.Handle("POST /users", handlers.NewUserHandler(createUserUC))
 	http.Handle("POST /auth/login", handlers.NewLoginHandler(loginUC))
@@ -98,6 +108,9 @@ func main() {
 
 	workerHandler := handlers.NewWorkerHandler(createWorkerUC, getWorkerUC, listWorkersUC, updateWorkerUC, deleteWorkerUC)
 	workerHandler.RegisterRoutes(http.DefaultServeMux)
+
+	taskHandler := handlers.NewTaskHandler(createTaskUC, getTaskUC, listTasksUC, updateTaskUC, deleteTaskUC, updateTaskStatusUC)
+	taskHandler.RegisterRoutes(http.DefaultServeMux)
 
 	port := config.GetEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)
