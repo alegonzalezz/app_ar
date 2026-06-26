@@ -13,6 +13,7 @@ import (
 	"gcp-serverless-app/migrations"
 
 	// Infrastructure
+	appointmentInfra "gcp-serverless-app/internal/appointment/infrastructure"
 	authInfra "gcp-serverless-app/internal/auth/infrastructure"
 	customerInfra "gcp-serverless-app/internal/customer/infrastructure"
 	greetInfra "gcp-serverless-app/internal/greeting/infrastructure"
@@ -22,6 +23,7 @@ import (
 	workerInfra "gcp-serverless-app/internal/worker/infrastructure"
 
 	// Application
+	appointmentApp "gcp-serverless-app/internal/appointment/application"
 	authApp "gcp-serverless-app/internal/auth/application"
 	customerApp "gcp-serverless-app/internal/customer/application"
 	greetApp "gcp-serverless-app/internal/greeting/application"
@@ -65,6 +67,7 @@ func main() {
 	customerRepo := customerInfra.NewPostgresRepository(db)
 	workerRepo := workerInfra.NewPostgresRepository(db)
 	taskRepo := taskInfra.NewPostgresRepository(db)
+	appointmentRepo := appointmentInfra.NewPostgresRepository(db)
 
 	// === CASOS DE USO ===
 	createAuthUC := authApp.NewCreateAuthUseCase(authRepo, hasher)
@@ -97,6 +100,17 @@ func main() {
 	deleteTaskUC := taskApp.NewDeleteTaskUseCase(taskRepo)
 	updateTaskStatusUC := taskApp.NewUpdateTaskStatusUseCase(taskRepo)
 
+	createAppointmentUC := appointmentApp.NewCreateAppointmentUseCase(appointmentRepo)
+	getAppointmentUC := appointmentApp.NewGetAppointmentUseCase(appointmentRepo)
+	listAppointmentsUC := appointmentApp.NewListAppointmentsUseCase(appointmentRepo)
+	updateAppointmentUC := appointmentApp.NewUpdateAppointmentUseCase(appointmentRepo)
+	deleteAppointmentUC := appointmentApp.NewDeleteAppointmentUseCase(appointmentRepo)
+	updateAppointmentStatusUC := appointmentApp.NewUpdateAppointmentStatusUseCase(appointmentRepo)
+	assignTaskUC := appointmentApp.NewAssignTaskUseCase(appointmentRepo)
+	unassignTaskUC := appointmentApp.NewUnassignTaskUseCase(appointmentRepo)
+	getTasksByAppointmentUC := appointmentApp.NewGetTasksByAppointmentUseCase(appointmentRepo)
+	getAppointmentsByTaskUC := appointmentApp.NewGetAppointmentsByTaskUseCase(appointmentRepo)
+
 	// === HTTP HANDLERS ===
 	http.Handle("POST /users", handlers.NewUserHandler(createUserUC))
 	http.Handle("POST /auth/login", handlers.NewLoginHandler(loginUC))
@@ -111,6 +125,12 @@ func main() {
 
 	taskHandler := handlers.NewTaskHandler(createTaskUC, getTaskUC, listTasksUC, updateTaskUC, deleteTaskUC, updateTaskStatusUC)
 	taskHandler.RegisterRoutes(http.DefaultServeMux)
+
+	appointmentHandler := handlers.NewAppointmentHandler(
+		createAppointmentUC, getAppointmentUC, listAppointmentsUC, updateAppointmentUC, deleteAppointmentUC,
+		updateAppointmentStatusUC, assignTaskUC, unassignTaskUC, getTasksByAppointmentUC, getAppointmentsByTaskUC,
+	)
+	appointmentHandler.RegisterRoutes(http.DefaultServeMux)
 
 	port := config.GetEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)
