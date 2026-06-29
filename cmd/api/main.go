@@ -13,6 +13,7 @@ import (
 	"gcp-serverless-app/migrations"
 
 	// Infrastructure
+	adminInfra "gcp-serverless-app/internal/administrative/infrastructure"
 	appointmentInfra "gcp-serverless-app/internal/appointment/infrastructure"
 	authInfra "gcp-serverless-app/internal/auth/infrastructure"
 	customerInfra "gcp-serverless-app/internal/customer/infrastructure"
@@ -24,6 +25,7 @@ import (
 	workerInfra "gcp-serverless-app/internal/worker/infrastructure"
 
 	// Application
+	adminApp "gcp-serverless-app/internal/administrative/application"
 	appointmentApp "gcp-serverless-app/internal/appointment/application"
 	authApp "gcp-serverless-app/internal/auth/application"
 	customerApp "gcp-serverless-app/internal/customer/application"
@@ -70,6 +72,7 @@ func main() {
 	workerRepo := workerInfra.NewPostgresRepository(db)
 	taskRepo := taskInfra.NewPostgresRepository(db)
 	appointmentRepo := appointmentInfra.NewPostgresRepository(db)
+	adminRepo := adminInfra.NewPostgresRepository(db)
 	visitRepo := visitInfra.NewPostgresRepository(db)
 
 	// === CASOS DE USO ===
@@ -114,6 +117,12 @@ func main() {
 	getTasksByAppointmentUC := appointmentApp.NewGetTasksByAppointmentUseCase(appointmentRepo)
 	getAppointmentsByTaskUC := appointmentApp.NewGetAppointmentsByTaskUseCase(appointmentRepo)
 
+	createAdminUC := adminApp.NewCreateAdministrativeUseCase(adminRepo)
+	getAdminUC := adminApp.NewGetAdministrativeUseCase(adminRepo)
+	listAdminsUC := adminApp.NewListAdministrativesUseCase(adminRepo)
+	updateAdminUC := adminApp.NewUpdateAdministrativeUseCase(adminRepo)
+	deleteAdminUC := adminApp.NewDeleteAdministrativeUseCase(adminRepo)
+
 	createVisitUC := visitApp.NewCreateVisitUseCase(visitRepo)
 	getVisitUC := visitApp.NewGetVisitUseCase(visitRepo)
 	listVisitsUC := visitApp.NewListVisitsUseCase(visitRepo)
@@ -132,6 +141,9 @@ func main() {
 
 	customerHandler := handlers.NewCustomerHandler(createCustomerUC, getCustomerUC, listCustomersUC, updateCustomerUC, deleteCustomerUC)
 	customerHandler.RegisterRoutes(http.DefaultServeMux)
+
+	adminHandler := handlers.NewAdministrativeHandler(createAdminUC, getAdminUC, listAdminsUC, updateAdminUC, deleteAdminUC)
+	adminHandler.RegisterRoutes(http.DefaultServeMux)
 
 	workerHandler := handlers.NewWorkerHandler(createWorkerUC, getWorkerUC, listWorkersUC, updateWorkerUC, deleteWorkerUC)
 	workerHandler.RegisterRoutes(http.DefaultServeMux)
