@@ -20,6 +20,7 @@ import (
 	pg "gcp-serverless-app/internal/shared/platform/postgres"
 	taskInfra "gcp-serverless-app/internal/task/infrastructure"
 	userInfra "gcp-serverless-app/internal/user/infrastructure"
+	visitInfra "gcp-serverless-app/internal/visit/infrastructure"
 	workerInfra "gcp-serverless-app/internal/worker/infrastructure"
 
 	// Application
@@ -29,6 +30,7 @@ import (
 	greetApp "gcp-serverless-app/internal/greeting/application"
 	taskApp "gcp-serverless-app/internal/task/application"
 	userApp "gcp-serverless-app/internal/user/application"
+	visitApp "gcp-serverless-app/internal/visit/application"
 	workerApp "gcp-serverless-app/internal/worker/application"
 
 	// Bridges
@@ -68,6 +70,7 @@ func main() {
 	workerRepo := workerInfra.NewPostgresRepository(db)
 	taskRepo := taskInfra.NewPostgresRepository(db)
 	appointmentRepo := appointmentInfra.NewPostgresRepository(db)
+	visitRepo := visitInfra.NewPostgresRepository(db)
 
 	// === CASOS DE USO ===
 	createAuthUC := authApp.NewCreateAuthUseCase(authRepo, hasher)
@@ -111,6 +114,16 @@ func main() {
 	getTasksByAppointmentUC := appointmentApp.NewGetTasksByAppointmentUseCase(appointmentRepo)
 	getAppointmentsByTaskUC := appointmentApp.NewGetAppointmentsByTaskUseCase(appointmentRepo)
 
+	createVisitUC := visitApp.NewCreateVisitUseCase(visitRepo)
+	getVisitUC := visitApp.NewGetVisitUseCase(visitRepo)
+	listVisitsUC := visitApp.NewListVisitsUseCase(visitRepo)
+	updateVisitUC := visitApp.NewUpdateVisitUseCase(visitRepo)
+	deleteVisitUC := visitApp.NewDeleteVisitUseCase(visitRepo)
+	updateVisitStatusUC := visitApp.NewUpdateVisitStatusUseCase(visitRepo)
+	assignVisitTaskUC := visitApp.NewAssignTaskUseCase(visitRepo)
+	unassignVisitTaskUC := visitApp.NewUnassignTaskUseCase(visitRepo)
+	getVisitTasksUC := visitApp.NewGetVisitTasksUseCase(visitRepo)
+
 	// === HTTP HANDLERS ===
 	http.Handle("POST /users", handlers.NewUserHandler(createUserUC))
 	http.Handle("POST /auth/login", handlers.NewLoginHandler(loginUC))
@@ -131,6 +144,18 @@ func main() {
 		updateAppointmentStatusUC, assignTaskUC, unassignTaskUC, getTasksByAppointmentUC, getAppointmentsByTaskUC,
 	)
 	appointmentHandler.RegisterRoutes(http.DefaultServeMux)
+
+	visitHandler := handlers.NewVisitHandler(
+		createVisitUC, getVisitUC, listVisitsUC, updateVisitUC, deleteVisitUC,
+		updateVisitStatusUC, assignVisitTaskUC, unassignVisitTaskUC, getVisitTasksUC,
+	)
+	visitHandler.RegisterRoutes(http.DefaultServeMux)
+
+	customerHistoryHandler := handlers.NewCustomerHistoryHandler(listVisitsUC)
+	customerHistoryHandler.RegisterRoutes(http.DefaultServeMux)
+
+	workerVisitsHandler := handlers.NewWorkerVisitsHandler(listVisitsUC)
+	workerVisitsHandler.RegisterRoutes(http.DefaultServeMux)
 
 	port := config.GetEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)
