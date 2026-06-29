@@ -25,5 +25,5 @@ type TxManager interface {
 // AuthCreator define el puerto driven para creación de credenciales.
 // Implementado por un bridge inter-módulo.
 type AuthCreator interface {
-	CreateAuth(ctx context.Context, userID, email, password string, createdAt time.Time) error
+	CreateAuth(ctx context.Context, authID, profileID, profileType, email, password string, createdAt time.Time) error
 }

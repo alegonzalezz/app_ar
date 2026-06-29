@@ -81,10 +81,10 @@ func main() {
 
 	// Bridges inter-módulo
 	authCreator := bridge.NewAuthCreatorBridge(createAuthUC)
-	userProvider := bridge.NewUserProviderBridge(userRepo)
+	profileProvider := bridge.NewProfileProviderBridge(userRepo, workerRepo, adminRepo)
 
 	createUserUC := userApp.NewCreateUserUseCase(txManager, userRepo, authCreator)
-	loginUC := authApp.NewLoginUseCase(authRepo, userProvider, hasher)
+	loginUC := authApp.NewLoginUseCase(authRepo, profileProvider, hasher)
 	findGreetingUC := greetApp.NewFindGreetingUseCase(greetRepo)
 
 	createCustomerUC := customerApp.NewCreateCustomerUseCase(customerRepo)
@@ -168,6 +168,9 @@ func main() {
 
 	workerVisitsHandler := handlers.NewWorkerVisitsHandler(listVisitsUC)
 	workerVisitsHandler.RegisterRoutes(http.DefaultServeMux)
+
+	credentialsHandler := handlers.NewCredentialsHandler(createAuthUC)
+	credentialsHandler.RegisterRoutes(http.DefaultServeMux)
 
 	port := config.GetEnv("PORT", "8080")
 	fmt.Printf("Servidor corriendo en el puerto %s...\n", port)

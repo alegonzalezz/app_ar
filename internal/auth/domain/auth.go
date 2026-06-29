@@ -2,9 +2,10 @@ package domain
 
 import "time"
 
-// AuthUser representa la entidad de autenticación del dominio.
 type AuthUser struct {
-	UserID       string
+	ID           string
+	ProfileID    string
+	ProfileType  string
 	Email        string
 	PasswordHash string
 	Salt         string
@@ -13,9 +14,10 @@ type AuthUser struct {
 	DeletedAt    *time.Time
 }
 
-// UserInfo es el DTO que retorna el login con datos del usuario.
 type UserInfo struct {
-	ID    string
-	Email string
-	Name  string
+	ID          string
+	Email       string
+	Name        string
+	ProfileType string
+	Profile     interface{}
 }

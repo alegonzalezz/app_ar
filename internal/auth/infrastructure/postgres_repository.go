@@ -14,7 +14,6 @@ type postgresAuthRepository struct {
 	db *sql.DB
 }
 
-// NewPostgresRepository crea una nueva instancia del repositorio PostgreSQL de auth.
 func NewPostgresRepository(db *sql.DB) domain.AuthRepository {
 	return &postgresAuthRepository{db: db}
 }
@@ -25,9 +24,11 @@ func (r *postgresAuthRepository) getDB(ctx context.Context) postgres.SQLQueryer 
 
 func (r *postgresAuthRepository) Save(ctx context.Context, authUser *domain.AuthUser) error {
 	query := `
-		INSERT INTO auth_users (user_id, email, password_hash, salt, created_at, updated_at, deleted_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (user_id) DO UPDATE SET
+		INSERT INTO auth_users (id, profile_id, profile_type, email, password_hash, salt, created_at, updated_at, deleted_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (id) DO UPDATE SET
+			profile_id = EXCLUDED.profile_id,
+			profile_type = EXCLUDED.profile_type,
 			email = EXCLUDED.email,
 			password_hash = EXCLUDED.password_hash,
 			salt = EXCLUDED.salt,
@@ -36,7 +37,9 @@ func (r *postgresAuthRepository) Save(ctx context.Context, authUser *domain.Auth
 	`
 	db := r.getDB(ctx)
 	_, err := db.ExecContext(ctx, query,
-		authUser.UserID,
+		authUser.ID,
+		authUser.ProfileID,
+		authUser.ProfileType,
 		authUser.Email,
 		authUser.PasswordHash,
 		authUser.Salt,
@@ -49,14 +52,16 @@ func (r *postgresAuthRepository) Save(ctx context.Context, authUser *domain.Auth
 
 func (r *postgresAuthRepository) GetByEmail(ctx context.Context, email string) (*domain.AuthUser, error) {
 	query := `
-		SELECT user_id, email, password_hash, salt, created_at, updated_at, deleted_at
+		SELECT id, profile_id, profile_type, email, password_hash, salt, created_at, updated_at, deleted_at
 		FROM auth_users
 		WHERE email = $1 AND deleted_at IS NULL
 	`
 	db := r.getDB(ctx)
 	var u domain.AuthUser
 	err := db.QueryRowContext(ctx, query, strings.ToLower(email)).Scan(
-		&u.UserID,
+		&u.ID,
+		&u.ProfileID,
+		&u.ProfileType,
 		&u.Email,
 		&u.PasswordHash,
 		&u.Salt,
@@ -73,13 +78,13 @@ func (r *postgresAuthRepository) GetByEmail(ctx context.Context, email string) (
 	return &u, nil
 }
 
-func (r *postgresAuthRepository) UpdatePassword(ctx context.Context, userID, newPasswordHash string) error {
+func (r *postgresAuthRepository) UpdatePassword(ctx context.Context, authID, newPasswordHash string) error {
 	query := `
 		UPDATE auth_users
 		SET password_hash = $1, updated_at = $2
-		WHERE user_id = $3
+		WHERE id = $3
 	`
 	db := r.getDB(ctx)
-	_, err := db.ExecContext(ctx, query, newPasswordHash, time.Now().UTC(), userID)
+	_, err := db.ExecContext(ctx, query, newPasswordHash, time.Now().UTC(), authID)
 	return err
 }
